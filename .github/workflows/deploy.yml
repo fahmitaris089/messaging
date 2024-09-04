@@ -1,0 +1,52 @@
+name: 🚀 Deploy website on push
+
+on:
+  push:
+    branches:
+      - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🎉 Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: 🚚 Copy files to server
+        run: |
+          rsync -avz -e "ssh -o StrictHostKeyChecking=no" ./ ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }}:/home/${{ secrets.SSH_USERNAME }}/dhumallchat
+
+      - name: Prune Docker system on server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} << 'EOF'
+          docker system prune -af
+          EOF
+
+      - name: 🚀 Run Docker Compose on server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} << 'EOF'
+          cd /home/${{ secrets.SSH_USERNAME }}/dhumallchat
+          docker build -t node-docker-dhumallchat .
+          docker-compose down -v --remove-orphans
+          docker-compose up -d --build
+          EOF
+
+      - name: Check Docker Compose status
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} << 'EOF'
+          cd /home/${{ secrets.SSH_USERNAME }}/dhumallchat
+          docker-compose ps
+          EOF
+
+      - name: Check Docker logs
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.SSH_SERVER }} << 'EOF'
+          cd /home/${{ secrets.SSH_USERNAME }}/dhumallchat
+          docker-compose logs
+          EOF
