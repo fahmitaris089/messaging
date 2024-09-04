@@ -1,0 +1,4 @@
+NODE_ENV = "development"
+AUTHORIZATION = "0e4f1786-daed-3ead-ad6c-3bdc37d39256"
+JWT_EXPIRES_IN = "3600s"
+PORT = "3003"
